@@ -23,6 +23,14 @@ $.fn.tokenInput = function (url, options) {
         method: "GET",
         contentType: "json",
         queryParam: "q",
+        cacheUnfilteredResults: false,
+        filterFnProducer: function(query) {
+                    // queries at the beginning of words
+                    var matcher = new RegExp("\\b" + query);
+                    return function(result) {
+                      return matcher.test(result);
+                    }
+                  },
         onResult: null
     }, options);
 
@@ -538,25 +546,39 @@ $.TokenList = function (input, settings) {
 
     // Do the actual search
     function run_search(query) {
+        if (settings.cacheUnfilteredResults)
+          query = "all";
+
         var cached_results = cache.get(query);
         if(cached_results) {
+          if(settings.cacheUnfilteredResults) {
+            populate_dropdown(query, $.grep(cached_results, settings.filterFnProducer(query)));
+          } else {
             populate_dropdown(query, cached_results);
+          }
         } else {
-			var queryStringDelimiter = settings.url.indexOf("?") < 0 ? "?" : "&";
-			var callback = function(results) {
-			  if($.isFunction(settings.onResult)) {
-			      results = settings.onResult.call(this, results);
-			  }
-              cache.add(query, settings.jsonContainer ? results[settings.jsonContainer] : results);
-              populate_dropdown(query, settings.jsonContainer ? results[settings.jsonContainer] : results);
+          var queryStringDelimiter = settings.url.indexOf("?") < 0 ? "?" : "&";
+          var callback = function(results) {
+              if($.isFunction(settings.onResult)) {
+                  results = settings.onResult.call(this, results);
+              }
+
+              var realResults = settings.jsonContainer ? results[settings.jsonContainer] : results;
+              if (settings.cacheUnfilteredResults) {
+                realResults = $.grep(realResults, settings.filterFnProducer(query));
+              }
+              cache.add(query, realResults);
+
+              populate_dropdown(query, realResults);
             };
             
-            if(settings.method == "POST") {
-			    $.post(settings.url + queryStringDelimiter + settings.queryParam + "=" + query, {}, callback, settings.contentType);
-		    } else {
-		        $.get(settings.url + queryStringDelimiter + settings.queryParam + "=" + query, {}, callback, settings.contentType);
-		    }
-        }
+          var requestFn = if (settings.method == "POST") $.post; else $.get;
+          var requestUri = settings.url;
+          if (!settings.cacheUnfilteredResults)
+            requestUri += queryStringDelimiter + settings.queryParam + "=" + query;
+
+          requestFn(requestUri , {}, callback, settings.contentType);
+       }
     }
 };
 
