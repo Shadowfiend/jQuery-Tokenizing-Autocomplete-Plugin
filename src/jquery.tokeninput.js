@@ -11,11 +11,16 @@
 (function($) {
 
 $.fn.tokenInput = function (url, options) {
+    if (options == undefined) {
+      options = {};
+    }
+
     var settings = $.extend({
         url: url,
         hintText: "Type in a search term",
         noResultsText: "No results",
         searchingText: "Searching...",
+        showPlaceholderWhenSearching: true,
         searchDelay: 300,
         minChars: 1,
         tokenLimit: null,
@@ -26,9 +31,9 @@ $.fn.tokenInput = function (url, options) {
         cacheUnfilteredResults: false,
         filterFnProducer: function(query) {
                     // queries at the beginning of words
-                    var matcher = new RegExp("\\b" + query);
+                    var matcher = new RegExp("\\b" + query, "gi");
                     return function(result) {
-                      return matcher.test(result);
+                      return matcher.test(result.name);
                     }
                   },
         onResult: null
@@ -531,7 +536,10 @@ $.TokenList = function (input, settings) {
                 deselect_token($(selected_token), POSITION.AFTER);
             }
             if (query.length >= settings.minChars) {
-                show_dropdown_searching();
+                if (settings.showPlaceholderWhenSearching) {
+                  show_dropdown_searching();
+                }
+
                 if (immediate) {
                     run_search(query);
                 } else {
@@ -546,10 +554,8 @@ $.TokenList = function (input, settings) {
 
     // Do the actual search
     function run_search(query) {
-        if (settings.cacheUnfilteredResults)
-          query = "all";
-
-        var cached_results = cache.get(query);
+        var cache_key = settings.cacheUnfilteredResults ? "all" : query;
+        var cached_results = cache.get(cache_key);
         if(cached_results) {
           if(settings.cacheUnfilteredResults) {
             populate_dropdown(query, $.grep(cached_results, settings.filterFnProducer(query)));
@@ -567,12 +573,12 @@ $.TokenList = function (input, settings) {
               if (settings.cacheUnfilteredResults) {
                 realResults = $.grep(realResults, settings.filterFnProducer(query));
               }
-              cache.add(query, realResults);
+              cache.add(cache_key, realResults);
 
               populate_dropdown(query, realResults);
             };
             
-          var requestFn = if (settings.method == "POST") $.post; else $.get;
+          var requestFn = (settings.method == "POST") ? $.post : $.get;
           var requestUri = settings.url;
           if (!settings.cacheUnfilteredResults)
             requestUri += queryStringDelimiter + settings.queryParam + "=" + query;
