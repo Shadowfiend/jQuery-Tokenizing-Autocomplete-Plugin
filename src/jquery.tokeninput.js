@@ -569,13 +569,13 @@ $.TokenList = function (input, settings) {
                   results = settings.onResult.call(this, results);
               }
 
-              var realResults = settings.jsonContainer ? results[settings.jsonContainer] : results;
+              var real_results = settings.jsonContainer ? results[settings.jsonContainer] : results;
+              cache.add(cache_key, real_results);
               if (settings.cacheUnfilteredResults) {
-                realResults = $.grep(realResults, settings.filterFnProducer(query));
+                real_results = $.grep(real_results, settings.filterFnProducer(query));
               }
-              cache.add(cache_key, realResults);
 
-              populate_dropdown(query, realResults);
+              populate_dropdown(query, real_results);
             };
             
           var requestFn = (settings.method == "POST") ? $.post : $.get;
