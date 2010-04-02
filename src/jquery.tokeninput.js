@@ -28,6 +28,7 @@ $.fn.tokenInput = function (url, options) {
         method: "GET",
         contentType: "json",
         queryParam: "q",
+        omitDuplicates: true,
         cacheUnfilteredResults: false,
         filterFnProducer: function(query) {
                     // queries at the beginning of words
@@ -467,6 +468,11 @@ $.TokenList = function (input, settings) {
     // Populate the results dropdown with some results
     function populate_dropdown (query, results) {
         if(results.length) {
+            if(settings.omitDuplicates) {
+              var existing = hidden_input.val().split(",");
+              results = jQuery.grep(results, function(item) { return jQuery.inArray(existing, item.id) == -1; });
+            }
+
             dropdown.empty();
             var dropdown_ul = $("<ul>")
                 .appendTo(dropdown)
