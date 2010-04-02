@@ -468,12 +468,12 @@ $.TokenList = function (input, settings) {
 
     // Populate the results dropdown with some results
     function populate_dropdown (query, results) {
-        if(results.length) {
-            if(settings.omitDuplicates) {
-              var existing = hidden_input.val().split(",");
-              results = jQuery.grep(results, function(item) { return jQuery.inArray(existing, item.id) == -1; });
-            }
+        if(settings.omitDuplicates) {
+          var existing = hidden_input.val().split(",");
+          results = jQuery.grep(results, function(item) { return jQuery.inArray(item.id, existing) == -1; });
+        }
 
+        if(results.length) {
             dropdown.empty();
             var dropdown_ul = $("<ul>")
                 .appendTo(dropdown)
